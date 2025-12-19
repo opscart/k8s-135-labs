@@ -11,7 +11,7 @@ kubectl get nodes -o wide
 echo ""
 
 echo "=== Kubernetes Version ==="
-kubectl version --short
+kubectl version
 echo ""
 
 echo "=== Node Declared Features ==="

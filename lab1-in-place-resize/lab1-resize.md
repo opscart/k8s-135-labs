@@ -38,37 +38,21 @@ kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-resize-demo
+  name: java-startup-demo
   labels:
-    app: resize-test
+    resize-enabled: "true"
 spec:
   containers:
-  - name: nginx
+  - name: app
     image: nginx:1.25
-    resizePolicy:
-    - resourceName: cpu
-      restartPolicy: NotRequired      # CPU changes without restart
-    - resourceName: memory
-      restartPolicy: RestartContainer  # Memory changes require restart
     resources:
       requests:
-        cpu: "500m"
-        memory: "256Mi"
+        cpu: "250m"       # Low during startup
+        memory: "256Mi"   # Low during startup
       limits:
-        cpu: "1000m"
-        memory: "512Mi"
-    command:
-    - /bin/sh
-    - -c
-    - |
-      echo "Pod started at: \$(date)"
-      echo "Initial CPU request: 500m"
-      echo "Container will run indefinitely..."
-      
-      # Keep container running
-      while true; do
-        sleep 3600
-      done
+        cpu: "250m"
+        memory: "256Mi"
+    command: ["sleep", "3600"]
 EOF
 ```
 
@@ -76,20 +60,20 @@ EOF
 
 ```bash
 # Wait for pod to be ready
-kubectl wait --for=condition=Ready pod/nginx-resize-demo --timeout=60s
+kubectl wait --for=condition=Ready pod/java-startup-demo --timeout=60s
 
 # Check initial resources
-kubectl get pod nginx-resize-demo -o yaml | grep -A 10 "resources:"
+kubectl get pod java-startup-demo -o yaml | grep -A 10 "resources:"
 
 # Check container restart count (should be 0)
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
 ```
 
 ### Step 3: Resize CPU (Without Restart)
 
 ```bash
 # Increase CPU to 1 core
-kubectl patch pod nginx-resize-demo \
+kubectl patch pod java-startup-demo \
   --subresource=resize \
   --type='json' \
   -p='[
@@ -110,16 +94,16 @@ kubectl patch pod nginx-resize-demo \
 
 ```bash
 # Check resize status
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.resize}' && echo
+kubectl get pod java-startup-demo -o jsonpath='{.status.resize}' && echo
 
 # Expected: InProgress, then blank (completed)
 
 # Verify container did NOT restart
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
 # Should still be 0
 
 # Check allocated resources
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].allocatedResources}' | jq
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].allocatedResources}' | jq
 
 # Expected output:
 # {
@@ -128,7 +112,7 @@ kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].all
 # }
 
 # Verify start time hasn't changed (no restart)
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].state.running.startedAt}'
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].state.running.startedAt}'
 ```
 
 **✅ Success Criteria:**
@@ -145,7 +129,7 @@ kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].sta
 
 ```bash
 # Increase memory (requires restart)
-kubectl patch pod nginx-resize-demo \
+kubectl patch pod java-startup-demo \
   --subresource=resize \
   --type='json' \
   -p='[
@@ -166,13 +150,13 @@ kubectl patch pod nginx-resize-demo \
 
 ```bash
 # Check restart count (should now be 1)
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].restartCount}'
 
 # Check new startedAt time (will be recent)
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].state.running.startedAt}'
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].state.running.startedAt}'
 
 # Verify new memory allocation
-kubectl get pod nginx-resize-demo -o jsonpath='{.status.containerStatuses[0].allocatedResources}' | jq
+kubectl get pod java-startup-demo -o jsonpath='{.status.containerStatuses[0].allocatedResources}' | jq
 ```
 
 **✅ Success Criteria:**
@@ -414,7 +398,7 @@ chmod +x auto-resize.sh
 
 ```bash
 # Delete all test pods
-kubectl delete pod nginx-resize-demo resize-status-test java-app-simulator
+kubectl delete pod java-startup-demo resize-status-test java-app-simulator
 
 # Verify cleanup
 kubectl get pods

@@ -3,11 +3,11 @@ echo "Starting Kubernetes 1.35 cluster..."
 
 minikube start \
   --kubernetes-version=v1.35.0 \
-  --cpus=4 \
-  --memory=8192 \
-  --disk-size=40g \
+  --cpus=2 \
+  --memory=4096 \
   --driver=docker \
-  --feature-gates=InPlacePodVerticalScaling=true,WorkloadAwareScheduling=true,NodeDeclaredFeatures=true
+  --container-runtime=containerd \
+  --extra-config=kubelet.cgroup-driver=systemd
 
 echo ""
 echo "Cluster started! Verifying..."
