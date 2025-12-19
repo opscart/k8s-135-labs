@@ -8,6 +8,7 @@ minikube start \
   --driver=docker \
   --container-runtime=containerd \
   --extra-config=kubelet.cgroup-driver=systemd
+# adding feature-gates require extra troubleshooting
 
 echo ""
 echo "Cluster started! Verifying..."

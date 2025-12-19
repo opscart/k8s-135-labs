@@ -113,19 +113,20 @@ k8s-135-labs/
 ├── LICENSE
 ├── README.md
 ├── cleanup.sh
+├── lab1-in-place-resize
+│   ├── auto-resize.sh
+│   └── lab1-resize.md
+├── lab2-gang-scheduling
+│   ├── lab2-gang-scheduling.md
+│   └── setup-gang-scheduling.sh
+├── lab3-structured-auth
+│   ├── auth-config.yaml
+│   └── lab3-auth-config.md
+├── lab4-node-features
+│   └── lab4-node-declaration.md
 ├── quick-test.sh
 ├── setup-k8s-135-azure.sh
-├── start-minikube.sh
-├── lab1-in-place-resize/
-│   ├── auto-resize.sh
-│   └── lab1-resize.md
-├── lab2-gang-scheduling/
-│   └── lab2-gang-scheduling.md
-├── lab3-structured-auth/
-│   ├── auth-config.yaml
-│   └── lab3-auth-config.md
-└── lab4-node-features/
-    └── lab4-node-declaration.md
+└── start-minikube.sh
 ```
 ---
 
@@ -226,7 +227,7 @@ cd k8s-135-labs
 ```bash
 # Lab 1: In-Place Resize (20 min)
 cd lab1-in-place-resize
-kubectl apply -f nginx-resize-demo.yaml
+kubectl apply -f java-startup-demo.yaml
 # Follow instructions in README.md
 
 # Lab 2: Gang Scheduling (30 min)
@@ -247,15 +248,16 @@ kubectl get node minikube -o jsonpath='{.status.declaredFeatures}' | jq
 
 ## 🚨 Troubleshooting
 
-### Issue: Kubernetes 1.35 not available yet
+### Issue: Not enough resources
 
-**Wait for release**: December 17, 2025
 
-**Temporary workaround**:
+**Solution**: Increase VM size
 ```bash
-# Test some features on 1.33 or 1.34
-minikube start --kubernetes-version=v1.33.0
-```
+az vm resize 
+\ --resource-group k8s-135-lab-rg \
+  --name k8s-135-lab-vm \
+  --size Standard_D4s_v3
+  ```
 
 ### Issue: Docker permission denied
 
@@ -274,6 +276,52 @@ az vm resize \
   --name k8s-135-lab-vm \
   --size Standard_D4s_v3
 ```
+
+### Issue: "Pod QOS Class may not change as a result of resizing"
+
+**Symptom:**
+```bash
+The Pod "qos-test" is invalid: spec: Invalid value: "Guaranteed": 
+Pod QOS Class may not change as a result of resizing
+```
+
+**Cause:** Attempting to resize only `requests` when the pod has Guaranteed QoS (where requests = limits).
+
+**Example of what fails:**
+```bash
+# Pod with Guaranteed QoS
+resources:
+  requests: { cpu: "500m", memory: "256Mi" }
+  limits:   { cpu: "500m", memory: "256Mi" }  # Same as requests
+
+# Trying to resize only requests
+kubectl patch pod qos-test --subresource=resize --type='json' -p='[
+  {"op":"replace","path":"/spec/containers/0/resources/requests/cpu","value":"250m"}
+]'
+# ❌ FAILS - would change QoS from Guaranteed to Burstable
+```
+
+**Solution:** Resize both `requests` AND `limits` together to maintain QoS class:
+```bash
+kubectl patch pod qos-test --subresource=resize --type='json' -p='[
+  {"op":"replace","path":"/spec/containers/0/resources/requests/cpu","value":"250m"},
+  {"op":"replace","path":"/spec/containers/0/resources/limits/cpu","value":"250m"}
+]'
+# ✅ WORKS - QoS stays Guaranteed
+```
+
+**Verification:**
+```bash
+# Check QoS class (should still be Guaranteed)
+kubectl get pod qos-test -o jsonpath='{.status.qosClass}'
+
+# Verify no restart occurred
+kubectl get pod qos-test -o jsonpath='{.status.containerStatuses[0].restartCount}'
+# Should be: 0
+```
+
+**Key Takeaway:** In-place resize cannot change a pod's QoS class. For Guaranteed QoS pods (requests = limits), both values must be resized proportionally.
+
 
 ### Issue: Feature gate not enabled
 
