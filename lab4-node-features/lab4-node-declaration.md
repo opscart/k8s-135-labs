@@ -10,7 +10,32 @@ Node Declared Features is an **Alpha feature** in Kubernetes 1.35 that allows no
 
 ---
 
-## Why This Matters
+### The Setup
+I enabled the Alpha feature gate in kubelet config:
+```yaml
+featureGates:
+  NodeDeclaredFeatures: true
+```
+
+### The Result
+The node immediately started advertising its capabilities:
+```json
+{
+  "declaredFeatures": [
+    "GuaranteedQoSPodCPUResize"
+  ]
+}
+```
+
+### The Connection
+Notice the declared feature? It's the same capability we tested in Lab 1! 
+The node is automatically advertising that it supports Guaranteed QoS pod 
+CPU resizing without restarts.
+
+### Why This Matters
+During cluster upgrades with mixed K8s versions, this enables intelligent 
+scheduling - newer pods only land on nodes that support their features.
+
 
 ### The Problem: Mixed-Version Clusters
 
