@@ -109,36 +109,24 @@ Nodes auto-advertise capabilities to scheduler.
 
 ```
 k8s-135-labs/
-├── setup-k8s-135-azure.sh          # Complete Azure VM setup
-├── AZURE-SETUP-GUIDE.md            # Detailed Azure instructions
-├── start-minikube.sh               # Start K8s 1.35 cluster
-├── quick-test.sh                   # Verify installation
-├── cleanup.sh                      # Remove everything
-│
+├── AZURE-SETUP-GUIDE.md
+├── LICENSE
+├── README.md
+├── cleanup.sh
+├── quick-test.sh
+├── setup-k8s-135-azure.sh
+├── start-minikube.sh
 ├── lab1-in-place-resize/
-│   ├── README.md                   # Lab 1 full guide
-│   ├── nginx-resize-demo.yaml
-│   ├── java-app-simulator.yaml
-│   └── auto-resize.sh
-│
+│   ├── auto-resize.sh
+│   └── lab1-resize.md
 ├── lab2-gang-scheduling/
-│   ├── README.md                   # Lab 2 full guide
-│   ├── basic-workload.yaml
-│   ├── pytorch-training.yaml
-│   └── spark-job.yaml
-│
+│   └── lab2-gang-scheduling.md
 ├── lab3-structured-auth/
-│   ├── README.md                   # Lab 3 guide
-│   └── auth-config-examples.yaml
-│
-├── lab4-node-features/
-│   ├── README.md                   # Lab 4 guide
-│   └── feature-aware-pod.yaml
-│
-└── article/
-    └── MAIN-ARTICLE.md             # Full article for DZone/Medium
+│   ├── auth-config.yaml
+│   └── lab3-auth-config.md
+└── lab4-node-features/
+    └── lab4-node-declaration.md
 ```
-
 ---
 
 ## 🎯 Key Features in K8s 1.35
